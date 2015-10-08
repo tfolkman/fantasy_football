@@ -6,13 +6,14 @@ import psycopg2
 from psycopg2.extensions import AsIs
 
 
-def write_to_db(data):
+def write_to_db(data, season):
     try:
         conn = psycopg2.connect("dbname='fantasyfootball' user='tylerfolkman'")
         print("Connected to fantasy football database!")
     except:
         print "I am unable to connect to the database."
     cur = conn.cursor()
+    cur.execute("""DELETE FROM points_against WHERE season = {0}""".format(str(season)))
     for player in data:
         columns = player.keys()
         values = [player[column] for column in columns]
@@ -20,12 +21,6 @@ def write_to_db(data):
 
         cur.execute(insert_statement, (AsIs(','.join(columns)), tuple(values)))
 
-    cur.execute("""DELETE FROM points_against a
-                    WHERE a.ctid <> (SELECT min(b.ctid)
-                        FROM points_against b
-                        WHERE (a.team = b.team
-                        and a.position = b.position and a.season = b.season
-                        ));""")
     conn.commit()
 
 
@@ -59,7 +54,10 @@ def get_data_from_source(source, season, position):
         player_dict['season'] = season
 
         if season == 2015:
-            start_index = 5
+	    if tds[2].text == "** BYE **":
+                start_index = 4
+	    else:
+		start_index = 5
         elif season == 2014:
             start_index = 4
 
@@ -82,7 +80,7 @@ def get_data_from_source(source, season, position):
         player_dict['receiving_td'] = int(tds[start_index+11].text)
         player_dict['receiving_targets'] = int(tds[start_index+12].text)
 
-        player_dict['total_points'] = int(tds[start_index+14].text)
+        player_dict['total_points'] = float(tds[start_index+14].text)
 
         table.append(player_dict)
     return table
@@ -91,7 +89,7 @@ def get_data_from_source(source, season, position):
 def main():
     season = int(sys.argv[1])
     tables = get_all_data(season)
-    write_to_db(tuple(tables))
+    write_to_db(tuple(tables), season)
     print("Finished!")
 
 if __name__ == '__main__':

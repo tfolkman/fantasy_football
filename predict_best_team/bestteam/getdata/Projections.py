@@ -49,6 +49,8 @@ def get_data_from_source(source, season, week):
     for tr in source.find_all('tr')[3:]:
         tds = tr.find_all('td')
 
+	if tds[1].text == "** BYE **":
+		continue
         player_dict = {}
         try:
             player_info = tds[0].text.split(",")
@@ -63,7 +65,6 @@ def get_data_from_source(source, season, week):
 
         player_dict['season'] = season
         player_dict['week'] = week
-
         opponent_text = tds[1].text
         if "@" in opponent_text:
             player_dict['opponent'] = opponent_text[1:]
@@ -90,7 +91,7 @@ def get_data_from_source(source, season, week):
         player_dict['receiving_yds'] = float(tds[11].text)
         player_dict['receiving_td'] = float(tds[12].text)
 
-        player_dict['total_points'] = int(tds[13].text)
+        player_dict['total_points'] = float(tds[13].text)
 
         table.append(player_dict)
     return table
